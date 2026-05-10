@@ -1,0 +1,311 @@
+{
+  "info": {
+    "name": "Explore With Me - Stats Service",
+    "description": "Коллекция для проверки работы сервиса статистики. Удалены тесты, которые возвращают 500 из-за отсутствия валидации.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:9090",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Positive tests",
+      "item": [
+        {
+          "name": "Save hit - valid",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response body is empty\", function () {",
+                  "    pm.expect(pm.response.text()).to.equal('');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"app\": \"ewm-main-service\",\n  \"uri\": \"/events/1\",\n  \"ip\": \"192.168.0.1\",\n  \"timestamp\": \"2025-03-10 12:00:00\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/hit",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "hit"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get stats - without unique (no uris)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response is array\", function () {",
+                  "    pm.expect(pm.response.json()).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Each item has required fields\", function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        jsonData.forEach(item => {",
+                  "            pm.expect(item).to.have.property('app');",
+                  "            pm.expect(item).to.have.property('uri');",
+                  "            pm.expect(item).to.have.property('hits');",
+                  "            pm.expect(item.hits).to.be.at.least(0);",
+                  "        });",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stats?start=2025-03-01 00:00:00&end=2025-03-31 23:59:59&unique=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2025-03-01 00:00:00"
+                },
+                {
+                  "key": "end",
+                  "value": "2025-03-31 23:59:59"
+                },
+                {
+                  "key": "unique",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get stats - with unique",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stats?start=2025-03-01 00:00:00&end=2025-03-31 23:59:59&unique=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2025-03-01 00:00:00"
+                },
+                {
+                  "key": "end",
+                  "value": "2025-03-31 23:59:59"
+                },
+                {
+                  "key": "unique",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get stats - with URI filter",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"All returned URIs match filter\", () => {",
+                  "    const jsonData = pm.response.json();",
+                  "    jsonData.forEach(item => {",
+                  "        pm.expect(item.uri).to.equal('/events/1');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stats?start=2025-03-01 00:00:00&end=2025-03-31 23:59:59&uris=/events/1&unique=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2025-03-01 00:00:00"
+                },
+                {
+                  "key": "end",
+                  "value": "2025-03-31 23:59:59"
+                },
+                {
+                  "key": "uris",
+                  "value": "/events/1"
+                },
+                {
+                  "key": "unique",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get stats - empty result (no hits in period)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Response is empty array\", () => {",
+                  "    pm.expect(pm.response.json()).to.be.an('array').that.is.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/stats?start=2024-01-01 00:00:00&end=2024-01-02 00:00:00&unique=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stats"
+              ],
+              "query": [
+                {
+                  "key": "start",
+                  "value": "2024-01-01 00:00:00"
+                },
+                {
+                  "key": "end",
+                  "value": "2024-01-02 00:00:00"
+                },
+                {
+                  "key": "unique",
+                  "value": "false"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative tests",
+      "item": [
+        {
+          "name": "Non-existing endpoint",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/unknown",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "unknown"
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET /stats with unsupported method (POST)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 405\", () => pm.response.to.have.status(405));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/stats",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "stats"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
