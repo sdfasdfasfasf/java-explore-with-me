@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.model.Compilation;
-import ru.practicum.ewm.model.Event;
 
 import java.util.stream.Collectors;
 

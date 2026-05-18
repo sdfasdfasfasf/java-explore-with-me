@@ -1,5 +1,6 @@
 package ru.practicum.ewm.controller.admin;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -7,8 +8,6 @@ import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.dto.UpdateCompilationRequest;
 import ru.practicum.ewm.service.CompilationService;
-
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/admin/compilations")

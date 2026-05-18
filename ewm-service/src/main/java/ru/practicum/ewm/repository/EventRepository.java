@@ -14,8 +14,11 @@ import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long> {
     Page<Event> findByInitiatorId(Long userId, Pageable pageable);
+
     Optional<Event> findByIdAndInitiatorId(Long eventId, Long userId);
+
     boolean existsByCategoryId(Long catId);
+
     void deleteByInitiatorId(Long userId);
 
     @Query("SELECT e FROM Event e WHERE " +

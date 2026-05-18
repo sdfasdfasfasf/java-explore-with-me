@@ -22,8 +22,7 @@ public class PrivateRequestController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ParticipationRequestDto addParticipationRequest(@PathVariable Long userId,
-                                                           @RequestParam(required = true) Long eventId) {
+    public ParticipationRequestDto addParticipationRequest(@PathVariable Long userId, @RequestParam(required = true) Long eventId) {
         if (eventId == null) {
             throw new BadRequestException("eventId must not be null");
         }
@@ -31,8 +30,7 @@ public class PrivateRequestController {
     }
 
     @PatchMapping("/{requestId}/cancel")
-    public ParticipationRequestDto cancelRequest(@PathVariable Long userId,
-                                                 @PathVariable Long requestId) {
+    public ParticipationRequestDto cancelRequest(@PathVariable Long userId, @PathVariable Long requestId) {
         return requestService.cancelRequest(userId, requestId);
     }
 }

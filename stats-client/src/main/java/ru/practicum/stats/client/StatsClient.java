@@ -20,12 +20,10 @@ import java.util.List;
 @Slf4j
 @Component
 public class StatsClient {
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final RestTemplate restTemplate = new RestTemplate();
-
     @Value("${stats-server.url:http://localhost:9090}")
     private String serverUrl;
-
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void hit(EndpointHit hit) {
         try {
@@ -44,10 +42,7 @@ public class StatsClient {
         try {
             String startStr = start.format(FORMATTER);
             String endStr = end.format(FORMATTER);
-            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl + "/stats")
-                    .queryParam("start", startStr)
-                    .queryParam("end", endStr)
-                    .queryParam("unique", unique);
+            UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl + "/stats").queryParam("start", startStr).queryParam("end", endStr).queryParam("unique", unique);
             if (uris != null && !uris.isEmpty()) {
                 uris.forEach(uri -> builder.queryParam("uris", uri));
             }
