@@ -1,5 +1,6 @@
 package ru.practicum.ewm.controller.private_api;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -7,7 +8,6 @@ import ru.practicum.ewm.dto.*;
 import ru.practicum.ewm.service.EventService;
 import ru.practicum.ewm.service.ParticipationRequestService;
 
-import jakarta.validation.Valid;
 import java.util.List;
 
 @RestController

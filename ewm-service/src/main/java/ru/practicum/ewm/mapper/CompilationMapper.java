@@ -16,21 +16,11 @@ public class CompilationMapper {
 
     public Compilation toCompilation(NewCompilationDto dto) {
         if (dto == null) return null;
-        return Compilation.builder()
-                .title(dto.getTitle())
-                .pinned(dto.getPinned() != null ? dto.getPinned() : false)
-                .build();
+        return Compilation.builder().title(dto.getTitle()).pinned(dto.getPinned() != null ? dto.getPinned() : false).build();
     }
 
     public CompilationDto toCompilationDto(Compilation compilation) {
         if (compilation == null) return null;
-        return CompilationDto.builder()
-                .id(compilation.getId())
-                .title(compilation.getTitle())
-                .pinned(compilation.getPinned())
-                .events(compilation.getEvents().stream()
-                        .map(eventMapper::toShortDto)
-                        .collect(Collectors.toList()))
-                .build();
+        return CompilationDto.builder().id(compilation.getId()).title(compilation.getTitle()).pinned(compilation.getPinned()).events(compilation.getEvents().stream().map(eventMapper::toShortDto).collect(Collectors.toList())).build();
     }
 }

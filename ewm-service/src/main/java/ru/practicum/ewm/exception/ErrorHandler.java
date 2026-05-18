@@ -50,12 +50,7 @@ public class ErrorHandler {
     }
 
     private Map<String, Object> buildError(HttpStatus status, String reason, String message) {
-        return Map.of(
-                "status", reason,
-                "reason", status.getReasonPhrase(),
-                "message", message,
-                "timestamp", LocalDateTime.now().format(FORMATTER)
-        );
+        return Map.of("status", reason, "reason", status.getReasonPhrase(), "message", message, "timestamp", LocalDateTime.now().format(FORMATTER));
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
