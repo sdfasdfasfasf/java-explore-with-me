@@ -1,6 +1,5 @@
 package ru.practicum.stats.client;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -12,8 +11,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import ru.practicum.stats.dto.EndpointHit;
 import ru.practicum.stats.dto.ViewStats;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -22,12 +19,13 @@ import java.util.List;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class StatsClient {
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private final RestTemplate restTemplate = new RestTemplate();
+
     @Value("${stats-server.url:http://localhost:9090}")
     private String serverUrl;
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     public void hit(EndpointHit hit) {
         try {
@@ -38,17 +36,17 @@ public class StatsClient {
             restTemplate.postForEntity(url, request, Void.class);
             log.info("Sent hit: {}", hit);
         } catch (Exception e) {
-            log.error("Failed to send hit to stats server: {}", e.getMessage(), e);
+            log.error("Failed to send hit: {}", e.getMessage(), e);
         }
     }
 
     public List<ViewStats> getStats(LocalDateTime start, LocalDateTime end, List<String> uris, boolean unique) {
         try {
-            String encodedStart = URLEncoder.encode(start.format(FORMATTER), StandardCharsets.UTF_8);
-            String encodedEnd = URLEncoder.encode(end.format(FORMATTER), StandardCharsets.UTF_8);
+            String startStr = start.format(FORMATTER);
+            String endStr = end.format(FORMATTER);
             UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(serverUrl + "/stats")
-                    .queryParam("start", encodedStart)
-                    .queryParam("end", encodedEnd)
+                    .queryParam("start", startStr)
+                    .queryParam("end", endStr)
                     .queryParam("unique", unique);
             if (uris != null && !uris.isEmpty()) {
                 uris.forEach(uri -> builder.queryParam("uris", uri));
@@ -57,7 +55,7 @@ public class StatsClient {
             ViewStats[] response = restTemplate.getForObject(url, ViewStats[].class);
             return response != null ? Arrays.asList(response) : Collections.emptyList();
         } catch (Exception e) {
-            log.error("Failed to get stats from stats server: {}", e.getMessage(), e);
+            log.error("Failed to get stats: {}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }
