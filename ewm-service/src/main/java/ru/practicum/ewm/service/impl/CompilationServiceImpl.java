@@ -9,14 +9,17 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.CompilationDto;
 import ru.practicum.ewm.dto.NewCompilationDto;
 import ru.practicum.ewm.dto.UpdateCompilationRequest;
+import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
+import ru.practicum.ewm.mapper.EventMapper;
 import ru.practicum.ewm.model.Compilation;
 import ru.practicum.ewm.model.Event;
 import ru.practicum.ewm.repository.CompilationRepository;
 import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.service.CompilationService;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,14 +31,15 @@ import java.util.stream.Collectors;
 public class CompilationServiceImpl implements CompilationService {
     private final CompilationRepository compilationRepository;
     private final EventRepository eventRepository;
+    private final EventMapper eventMapper;  // <-- добавлено поле eventMapper
 
     @Override
     @Transactional
     public CompilationDto saveCompilation(NewCompilationDto dto) {
+        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+            throw new BadRequestException("Title cannot be blank");
+        }
         try {
-            log.info("Creating compilation: title={}, pinned={}, eventsCount={}",
-                    dto.getTitle(), dto.getPinned(), dto.getEvents() == null ? 0 : dto.getEvents().size());
-
             Compilation compilation = new Compilation();
             compilation.setTitle(dto.getTitle());
             compilation.setPinned(dto.getPinned() != null ? dto.getPinned() : false);
@@ -43,30 +47,32 @@ public class CompilationServiceImpl implements CompilationService {
                 List<Event> events = eventRepository.findAllById(dto.getEvents());
                 compilation.setEvents(new HashSet<>(events));
             }
-            Compilation saved = compilationRepository.save(compilation);
-            return toDto(saved);
+            return toDto(compilationRepository.save(compilation));
         } catch (DataIntegrityViolationException e) {
-            log.error("Duplicate title: {}", dto.getTitle(), e);
             throw new ConflictException("Compilation title already exists: " + dto.getTitle());
-        } catch (Exception e) {
-            log.error("Unexpected error while creating compilation", e);
-            throw new RuntimeException("Failed to create compilation: " + e.getMessage(), e);
         }
     }
 
     @Override
     @Transactional
     public void deleteCompilation(Long compId) {
-        Compilation compilation = getCompilationEntity(compId);
-        compilationRepository.delete(compilation);
+        getCompilationEntity(compId);
+        compilationRepository.deleteById(compId);
     }
 
     @Override
     @Transactional
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest request) {
         Compilation compilation = getCompilationEntity(compId);
-        if (request.getTitle() != null) compilation.setTitle(request.getTitle());
-        if (request.getPinned() != null) compilation.setPinned(request.getPinned());
+        if (request.getTitle() != null) {
+            if (request.getTitle().isBlank()) {
+                throw new BadRequestException("Title cannot be blank");
+            }
+            compilation.setTitle(request.getTitle());
+        }
+        if (request.getPinned() != null) {
+            compilation.setPinned(request.getPinned());
+        }
         if (request.getEvents() != null) {
             List<Event> events = eventRepository.findAllById(request.getEvents());
             compilation.setEvents(new HashSet<>(events));
@@ -78,11 +84,9 @@ public class CompilationServiceImpl implements CompilationService {
     public List<CompilationDto> getCompilations(Boolean pinned, int from, int size) {
         PageRequest page = PageRequest.of(from / size, size);
         if (pinned != null) {
-            return compilationRepository.findByPinned(pinned, page).stream()
-                    .map(this::toDto).collect(Collectors.toList());
+            return compilationRepository.findByPinned(pinned, page).stream().map(this::toDto).collect(Collectors.toList());
         } else {
-            return compilationRepository.findAll(page).stream()
-                    .map(this::toDto).collect(Collectors.toList());
+            return compilationRepository.findAll(page).stream().map(this::toDto).collect(Collectors.toList());
         }
     }
 
@@ -92,8 +96,7 @@ public class CompilationServiceImpl implements CompilationService {
     }
 
     private Compilation getCompilationEntity(Long id) {
-        return compilationRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Compilation with id=" + id + " was not found"));
+        return compilationRepository.findById(id).orElseThrow(() -> new NotFoundException("Compilation with id=" + id + " was not found"));
     }
 
     private CompilationDto toDto(Compilation compilation) {
@@ -101,7 +104,11 @@ public class CompilationServiceImpl implements CompilationService {
         dto.setId(compilation.getId());
         dto.setTitle(compilation.getTitle());
         dto.setPinned(compilation.getPinned());
-        // events mapping omitted here – add if needed
+        if (compilation.getEvents() == null || compilation.getEvents().isEmpty()) {
+            dto.setEvents(new ArrayList<>());
+        } else {
+            dto.setEvents(compilation.getEvents().stream().map(eventMapper::toShortDto).collect(Collectors.toList()));
+        }
         return dto;
     }
 }

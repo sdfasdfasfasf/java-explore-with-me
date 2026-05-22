@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.dto.NewCategoryDto;
+import ru.practicum.ewm.exception.BadRequestException;
 import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.mapper.CategoryMapper;
@@ -46,15 +47,16 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public CategoryDto updateCategory(Long catId, CategoryDto dto) {
         Category category = getCategoryEntity(catId);
+        if (dto.getName() == null || dto.getName().isBlank() || dto.getName().length() > 50) {
+            throw new BadRequestException("Category name must be between 1 and 50 characters");
+        }
         category.setName(dto.getName());
         return mapper.toCategoryDto(categoryRepository.save(category));
     }
 
     @Override
     public List<CategoryDto> getCategories(int from, int size) {
-        return categoryRepository.findAll(PageRequest.of(from / size, size)).stream()
-                .map(mapper::toCategoryDto)
-                .collect(Collectors.toList());
+        return categoryRepository.findAll(PageRequest.of(from / size, size)).stream().map(mapper::toCategoryDto).collect(Collectors.toList());
     }
 
     @Override
@@ -63,7 +65,6 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     private Category getCategoryEntity(Long id) {
-        return categoryRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Category with id=" + id + " was not found"));
+        return categoryRepository.findById(id).orElseThrow(() -> new NotFoundException("Category with id=" + id + " was not found"));
     }
 }
