@@ -22,7 +22,7 @@ public class PrivateRequestController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ParticipationRequestDto addParticipationRequest(@PathVariable Long userId, @RequestParam(required = true) Long eventId) {
+    public ParticipationRequestDto addParticipationRequest(@PathVariable Long userId, @RequestParam(required = false) Long eventId) {
         if (eventId == null) {
             throw new BadRequestException("eventId must not be null");
         }
