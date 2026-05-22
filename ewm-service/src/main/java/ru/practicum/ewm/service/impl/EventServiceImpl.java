@@ -3,6 +3,7 @@ package ru.practicum.ewm.service.impl;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -138,7 +139,13 @@ public class EventServiceImpl implements EventService {
         if (rangeEnd == null) rangeEnd = rangeStart.plusYears(100);
         Sort sortBy = "VIEWS".equals(sort) ? Sort.by("views").descending() : Sort.by("eventDate").ascending();
         PageRequest page = PageRequest.of(from / size, size, sortBy);
-        return eventRepository.findForPublic(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, page).stream().map(e -> enrichWithStats(e, true)).collect(Collectors.toList());
+        Page<Event> eventsPage;
+        if (text == null || text.isBlank()) {
+            eventsPage = eventRepository.findForPublicWithoutText(categories, paid, rangeStart, rangeEnd, onlyAvailable, page);
+        } else {
+            eventsPage = eventRepository.findForPublic(text, categories, paid, rangeStart, rangeEnd, onlyAvailable, page);
+        }
+        return eventsPage.stream().map(e -> enrichWithStats(e, true)).collect(Collectors.toList());
     }
 
     @Override
