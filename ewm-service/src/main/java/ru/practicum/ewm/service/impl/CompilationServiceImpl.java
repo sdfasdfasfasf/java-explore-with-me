@@ -36,8 +36,8 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     @Transactional
     public CompilationDto saveCompilation(NewCompilationDto dto) {
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            throw new BadRequestException("Title cannot be blank");
+        if (dto.getTitle() == null || dto.getTitle().isBlank() || dto.getTitle().length() > 50) {
+            throw new BadRequestException("Title length must be between 1 and 50 characters");
         }
         try {
             Compilation compilation = new Compilation();
@@ -65,8 +65,8 @@ public class CompilationServiceImpl implements CompilationService {
     public CompilationDto updateCompilation(Long compId, UpdateCompilationRequest request) {
         Compilation compilation = getCompilationEntity(compId);
         if (request.getTitle() != null) {
-            if (request.getTitle().isBlank()) {
-                throw new BadRequestException("Title cannot be blank");
+            if (request.getTitle().length() > 50) {
+                throw new BadRequestException("Title length must not exceed 50 characters");
             }
             compilation.setTitle(request.getTitle());
         }
