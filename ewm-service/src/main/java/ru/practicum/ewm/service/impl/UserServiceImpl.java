@@ -1,12 +1,15 @@
 package ru.practicum.ewm.service.impl;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.NewUserRequest;
 import ru.practicum.ewm.dto.UserDto;
+import ru.practicum.ewm.exception.ConflictException;
 import ru.practicum.ewm.exception.NotFoundException;
 import ru.practicum.ewm.mapper.UserMapper;
 import ru.practicum.ewm.model.User;
@@ -18,11 +21,12 @@ import ru.practicum.ewm.service.UserService;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
     private final ParticipationRequestRepository requestRepository;
@@ -30,33 +34,46 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> getUsers(List<Long> ids, int from, int size) {
+        log.debug("Getting users: ids={}, from={}, size={}", ids, from, size);
         PageRequest page = PageRequest.of(from / size, size);
+        List<UserDto> result;
         if (ids == null || ids.isEmpty()) {
-            return userRepository.findAll(page).stream().map(mapper::toUserDto).collect(Collectors.toList());
+            result = userRepository.findAll(page).stream()
+                    .map(mapper::toUserDto).collect(Collectors.toList());
         } else {
-            return userRepository.findAllById(ids).stream().map(mapper::toUserDto).collect(Collectors.toList());
+            result = userRepository.findAllById(ids).stream()
+                    .map(mapper::toUserDto).collect(Collectors.toList());
         }
+        log.debug("Found {} users", result.size());
+        return result;
     }
 
     @Override
     @Transactional
     public UserDto registerUser(NewUserRequest request) {
-        User user = mapper.toUser(request);
-        return mapper.toUserDto(userRepository.save(user));
+        log.info("Registering new user: email={}, name={}", request.getEmail(), request.getName());
+        try {
+            User user = mapper.toUser(request);
+            User saved = userRepository.save(user);
+            log.debug("User registered with id={}", saved.getId());
+            return mapper.toUserDto(saved);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate email: {}", request.getEmail());
+            throw new ConflictException("Email already exists: " + request.getEmail());
+        }
     }
 
     @Override
     @Transactional
     public void deleteUser(Long userId) {
+        log.info("Deleting user id={}", userId);
         if (!userRepository.existsById(userId)) {
+            log.warn("User not found for deletion: id={}", userId);
             throw new NotFoundException("User with id=" + userId + " not found");
         }
-        // Удаляем все запросы пользователя
         requestRepository.deleteByRequesterId(userId);
-        // Удаляем все события пользователя
         eventRepository.deleteByInitiatorId(userId);
-        // Удаляем пользователя
         userRepository.deleteById(userId);
-        log.info("Deleted user with id={}", userId);
+        log.debug("User deleted: id={}", userId);
     }
 }

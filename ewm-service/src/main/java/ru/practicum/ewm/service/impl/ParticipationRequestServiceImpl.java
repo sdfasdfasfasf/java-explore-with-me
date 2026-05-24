@@ -1,6 +1,8 @@
 package ru.practicum.ewm.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.ewm.dto.EventRequestStatusUpdateRequest;
@@ -25,6 +27,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class ParticipationRequestServiceImpl implements ParticipationRequestService {
+    private static final Logger log = LoggerFactory.getLogger(CategoryServiceImpl.class);
+
     private final ParticipationRequestRepository requestRepository;
     private final UserRepository userRepository;
     private final EventRepository eventRepository;
@@ -32,28 +36,45 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
 
     @Override
     public List<ParticipationRequestDto> getUserRequests(Long userId) {
+        log.debug("Getting requests for user id={}", userId);
         userExists(userId);
-        return requestRepository.findByRequesterId(userId).stream()
+        List<ParticipationRequestDto> result = requestRepository.findByRequesterId(userId).stream()
                 .map(mapper::toDto).collect(Collectors.toList());
+        log.debug("Found {} requests for user {}", result.size(), userId);
+        return result;
     }
 
     @Override
     @Transactional
     public ParticipationRequestDto addParticipationRequest(Long userId, Long eventId) {
+        log.info("User {} requesting participation in event {}", userId, eventId);
         User requester = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+                .orElseThrow(() -> {
+                    log.warn("User not found: id={}", userId);
+                    return new NotFoundException("User not found");
+                });
         Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new NotFoundException("Event with id=" + eventId + " not found"));
-        if (event.getInitiator().getId().equals(userId))
+                .orElseThrow(() -> {
+                    log.warn("Event not found: id={}", eventId);
+                    return new NotFoundException("Event not found");
+                });
+        if (event.getInitiator().getId().equals(userId)) {
+            log.warn("Initiator cannot request own event: userId={}, eventId={}", userId, eventId);
             throw new ConflictException("Initiator cannot request participation");
-        if (event.getState() != EventState.PUBLISHED)
+        }
+        if (event.getState() != EventState.PUBLISHED) {
+            log.warn("Event not published: eventId={}, state={}", eventId, event.getState());
             throw new ConflictException("Event not published");
-        if (requestRepository.existsByEventIdAndRequesterId(eventId, userId))
+        }
+        if (requestRepository.existsByEventIdAndRequesterId(eventId, userId)) {
+            log.warn("Duplicate request: eventId={}, userId={}", eventId, userId);
             throw new ConflictException("Request already exists");
+        }
         long confirmed = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
-        if (event.getParticipantLimit() > 0 && confirmed >= event.getParticipantLimit())
+        if (event.getParticipantLimit() > 0 && confirmed >= event.getParticipantLimit()) {
+            log.warn("Participant limit reached for event {}: limit={}", eventId, event.getParticipantLimit());
             throw new ConflictException("Participant limit reached");
-
+        }
         ParticipationRequest request = new ParticipationRequest();
         request.setCreated(LocalDateTime.now());
         request.setRequester(requester);
@@ -63,7 +84,9 @@ public class ParticipationRequestServiceImpl implements ParticipationRequestServ
         } else {
             request.setStatus(RequestStatus.PENDING);
         }
-        return mapper.toDto(requestRepository.save(request));
+        ParticipationRequest saved = requestRepository.save(request);
+        log.debug("Request created: id={}, status={}", saved.getId(), saved.getStatus());
+        return mapper.toDto(saved);
     }
 
     @Override

@@ -101,6 +101,7 @@ public class EventServiceImpl implements EventService {
         event.setRequestModeration(dto.getRequestModeration() != null ? dto.getRequestModeration() : true);
         event.setState(EventState.PENDING);
         Event saved = eventRepository.save(event);
+        log.debug("Event created with id={}, state={}", saved.getId(), saved.getState());
         return enrichWithStats(saved);
     }
 
@@ -114,6 +115,7 @@ public class EventServiceImpl implements EventService {
     @Override
     @Transactional
     public EventFullDto updateEventByUser(Long userId, Long eventId, UpdateEventUserRequest request) {
+        log.info("User {} updating event {}, action={}", userId, eventId, request.getStateAction());
         Event event = getEventById(eventId);
         if (!event.getInitiator().getId().equals(userId)) throw new ForbiddenException("Not the initiator");
         if (event.getState() == EventState.PUBLISHED)
@@ -129,6 +131,7 @@ public class EventServiceImpl implements EventService {
             throw new BadRequestException("Event date must be at least 2 hours from now");
         }
         updateEventFromUser(request, event);
+        log.debug("Event {} updated, new state={}", eventId, event.getState());
         return enrichWithStats(eventRepository.save(event));
     }
 
@@ -175,14 +178,24 @@ public class EventServiceImpl implements EventService {
     private EventFullDto enrichWithStats(Event event) {
         EventFullDto dto = eventMapper.toFullDto(event);
         dto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED));
-        dto.setViews(getViewsForEvent(event));
+        try {
+            dto.setViews(getViewsForEvent(event));
+        } catch (Exception e) {
+            log.warn("Failed to get views for event {}: {}", event.getId(), e.getMessage());
+            dto.setViews(0L);
+        }
         return dto;
     }
 
     private EventShortDto enrichWithStats(Event event, boolean shortVersion) {
         EventShortDto dto = eventMapper.toShortDto(event);
         dto.setConfirmedRequests(requestRepository.countByEventIdAndStatus(event.getId(), RequestStatus.CONFIRMED));
-        dto.setViews(getViewsForEvent(event));
+        try {
+            dto.setViews(getViewsForEvent(event));
+        } catch (Exception e) {
+            log.warn("Failed to get views for event {}: {}", event.getId(), e.getMessage());
+            dto.setViews(0L);
+        }
         return dto;
     }
 

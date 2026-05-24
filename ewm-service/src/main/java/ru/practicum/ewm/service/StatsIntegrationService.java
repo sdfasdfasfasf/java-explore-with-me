@@ -25,6 +25,7 @@ public class StatsIntegrationService {
                 .ip(request.getRemoteAddr())
                 .timestamp(LocalDateTime.now())
                 .build();
+        log.debug("Sending hit to stats server: app={}, uri={}, ip={}", hit.getApp(), hit.getUri(), hit.getIp());
         statsClient.hit(hit);
     }
 }

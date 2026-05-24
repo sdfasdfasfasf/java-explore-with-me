@@ -36,7 +36,9 @@ public class CompilationServiceImpl implements CompilationService {
     @Override
     @Transactional
     public CompilationDto saveCompilation(NewCompilationDto dto) {
+        log.info("Creating compilation: title={}, pinned={}", dto.getTitle(), dto.getPinned());
         if (dto.getTitle() == null || dto.getTitle().isBlank() || dto.getTitle().length() > 50) {
+            log.warn("Invalid title length: {}", dto.getTitle());
             throw new BadRequestException("Title length must be between 1 and 50 characters");
         }
         try {
@@ -46,9 +48,13 @@ public class CompilationServiceImpl implements CompilationService {
             if (dto.getEvents() != null && !dto.getEvents().isEmpty()) {
                 List<Event> events = eventRepository.findAllById(dto.getEvents());
                 compilation.setEvents(new HashSet<>(events));
+                log.debug("Added {} events to compilation", events.size());
             }
-            return toDto(compilationRepository.save(compilation));
+            Compilation saved = compilationRepository.save(compilation);
+            log.debug("Compilation saved with id={}", saved.getId());
+            return toDto(saved);
         } catch (DataIntegrityViolationException e) {
+            log.warn("Duplicate compilation title: {}", dto.getTitle());
             throw new ConflictException("Compilation title already exists: " + dto.getTitle());
         }
     }
@@ -107,7 +113,9 @@ public class CompilationServiceImpl implements CompilationService {
         if (compilation.getEvents() == null || compilation.getEvents().isEmpty()) {
             dto.setEvents(new ArrayList<>());
         } else {
-            dto.setEvents(compilation.getEvents().stream().map(eventMapper::toShortDto).collect(Collectors.toList()));
+            dto.setEvents(compilation.getEvents().stream()
+                    .map(eventMapper::toShortDto)
+                    .collect(Collectors.toList()));
         }
         return dto;
     }
