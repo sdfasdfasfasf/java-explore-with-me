@@ -1,0 +1,26 @@
+package ru.practicum.stats.server.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+
+@RestControllerAdvice
+public class ErrorHandler {
+
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleIllegalArgument(IllegalArgumentException e) {
+        return buildError(HttpStatus.BAD_REQUEST, "BAD_REQUEST", e.getMessage());
+    }
+
+    private Map<String, Object> buildError(HttpStatus status, String reason, String message) {
+        return Map.of("status", reason, "reason", status.getReasonPhrase(), "message", message, "timestamp", LocalDateTime.now().format(FORMATTER));
+    }
+}

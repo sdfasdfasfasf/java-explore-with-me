@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "Explore With Me",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "timestamp", "value": "{{$timestamp}}" },
+    { "key": "categoryId", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "secondUserId", "value": "" },
+    { "key": "eventId", "value": "" },
+    { "key": "compilationId", "value": "" },
+    { "key": "requestId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Create category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\": \"Category {{$timestamp}}\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/categories", "host": ["{{baseUrl}}"], "path": ["admin","categories"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('categoryId', json.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create user (owner)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\": \"owner_{{$timestamp}}@test.com\", \"name\": \"Owner {{$timestamp}}\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin","users"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('userId', json.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create second user (requester)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\": \"requester_{{$timestamp}}@test.com\", \"name\": \"Requester {{$timestamp}}\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin","users"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('secondUserId', json.id);"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Admin Categories",
+      "item": [
+        {
+          "name": "Update category",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\": \"Updated Name\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/categories/{{categoryId}}", "host": ["{{baseUrl}}"], "path": ["admin","categories","{{categoryId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Compilations",
+      "item": [
+        {
+          "name": "Create compilation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"title\": \"Comp {{$timestamp}}\", \"pinned\": true, \"events\": []}" },
+            "url": { "raw": "{{baseUrl}}/admin/compilations", "host": ["{{baseUrl}}"], "path": ["admin","compilations"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('compilationId', json.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Delete compilation",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/admin/compilations/{{compilationId}}", "host": ["{{baseUrl}}"], "path": ["admin","compilations","{{compilationId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 204\", () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Event Flow",
+      "item": [
+        {
+          "name": "Create event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"annotation\": \"Short description of\",\n  \"category\": {{categoryId}},\n  \"description\": \"This is a long description that is definitely more than twenty characters long.\",\n  \"eventDate\": \"2026-12-31 18:00:00\",\n  \"location\": { \"lat\": 55.7558, \"lon\": 37.6173 },\n  \"paid\": false,\n  \"participantLimit\": 5,\n  \"requestModeration\": true,\n  \"title\": \"Event {{$timestamp}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/events", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}","events"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('eventId', json.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Send event to review",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"stateAction\": \"SEND_TO_REVIEW\"}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}","events","{{eventId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Admin publish event",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"stateAction\": \"PUBLISH_EVENT\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["admin","events","{{eventId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Second user creates request",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/users/{{secondUserId}}/requests?eventId={{eventId}}", "host": ["{{baseUrl}}"], "path": ["users","{{secondUserId}}","requests"], "query": [{ "key": "eventId", "value": "{{eventId}}" }] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "let json = pm.response.json();",
+                "pm.collectionVariables.set('requestId', json.id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Owner confirms request",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"requestIds\": [{{requestId}}], \"status\": \"CONFIRMED\"}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/requests", "host": ["{{baseUrl}}"], "path": ["users","{{userId}}","events","{{eventId}}","requests"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Second user cancels request",
+          "request": {
+            "method": "PATCH",
+            "url": { "raw": "{{baseUrl}}/users/{{secondUserId}}/requests/{{requestId}}/cancel", "host": ["{{baseUrl}}"], "path": ["users","{{secondUserId}}","requests","{{requestId}}","cancel"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Public API",
+      "item": [
+        {
+          "name": "Get events with filters",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/events?text=short&paid=false&onlyAvailable=false&sort=EVENT_DATE&from=0&size=10", "host": ["{{baseUrl}}"], "path": ["events"], "query": [{ "key": "text", "value": "short" },{ "key": "paid", "value": "false" },{ "key": "onlyAvailable", "value": "false" },{ "key": "sort", "value": "EVENT_DATE" },{ "key": "from", "value": "0" },{ "key": "size", "value": "10" }] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"] }
+          }]
+        },
+        {
+          "name": "Get event by id",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["events","{{eventId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+                "let json = pm.response.json();",
+                "pm.expect(json).to.have.property('views');"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete second user",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/admin/users/{{secondUserId}}", "host": ["{{baseUrl}}"], "path": ["admin","users","{{secondUserId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 204\", () => pm.response.to.have.status(204));"] }
+          }]
+        },
+        {
+          "name": "Delete owner",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/admin/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["admin","users","{{userId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 204\", () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    }
+  ]
+}
