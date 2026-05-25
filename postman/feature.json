@@ -1,0 +1,206 @@
+{
+  "info": {
+    "name": "Explore With Me - Comments",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "userId", "value": "" },
+    { "key": "eventId", "value": "" },
+    { "key": "commentId", "value": "" },
+    { "key": "adminCommentId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\": \"commenter@test.com\", \"name\": \"Commenter\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/users", "host": ["{{baseUrl}}"], "path": ["admin", "users"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "    pm.collectionVariables.set('userId', pm.response.json().id);",
+                "} else if (pm.response.code === 409) {",
+                "    pm.sendRequest({",
+                "        url: pm.collectionVariables.get('baseUrl') + '/admin/users?email=commenter@test.com',",
+                "        method: 'GET'",
+                "    }, (err, res) => {",
+                "        if (res.json().length > 0) pm.collectionVariables.set('userId', res.json()[0].id);",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create category and event",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\": \"Test Cat\"}" },
+            "url": { "raw": "{{baseUrl}}/admin/categories", "host": ["{{baseUrl}}"], "path": ["admin", "categories"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "if (pm.response.code === 201) {",
+                "    let catId = pm.response.json().id;",
+                "    pm.sendRequest({",
+                "        url: pm.collectionVariables.get('baseUrl') + '/users/' + pm.collectionVariables.get('userId') + '/events',",
+                "        method: 'POST',",
+                "        header: { 'Content-Type': 'application/json' },",
+                "        body: JSON.stringify({",
+                "            annotation: 'Test annotation for event',",
+                "            category: catId,",
+                "            description: 'This is a long description that is definitely more than twenty characters long.',",
+                "            eventDate: '2026-12-31 18:00:00',",
+                "            location: { lat: 55.7558, lon: 37.6173 },",
+                "            paid: false,",
+                "            participantLimit: 0,",
+                "            requestModeration: false,",
+                "            title: 'Test Event for Comments'",
+                "        })",
+                "    }, (err, res) => {",
+                "        let event = res.json();",
+                "        pm.collectionVariables.set('eventId', event.id);",
+                "        pm.sendRequest({",
+                "            url: pm.collectionVariables.get('baseUrl') + '/admin/events/' + event.id,",
+                "            method: 'PATCH',",
+                "            header: { 'Content-Type': 'application/json' },",
+                "            body: JSON.stringify({ stateAction: 'PUBLISH_EVENT' })",
+                "        });",
+                "    });",
+                "}"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create comment for user tests",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"text\": \"Great event!\"}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/comments/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "comments", "events", "{{eventId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "pm.collectionVariables.set('commentId', pm.response.json().id);"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Create comment for admin test",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"text\": \"Admin test comment\"}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/comments/events/{{eventId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "comments", "events", "{{eventId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test(\"Status 201\", () => pm.response.to.have.status(201));",
+                "pm.collectionVariables.set('adminCommentId', pm.response.json().id);"
+              ]
+            }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Tests",
+      "item": [
+        {
+          "name": "1. Get comments by event",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}/comments?from=0&size=10", "host": ["{{baseUrl}}"], "path": ["events", "{{eventId}}", "comments"], "query": [{ "key": "from", "value": "0" }, { "key": "size", "value": "10" }] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "let arr = pm.response.json();",
+              "pm.expect(arr).to.be.an('array');",
+              "pm.expect(arr.length).to.be.at.least(2);"
+            ] }
+          }]
+        },
+        {
+          "name": "2. Get single comment",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/events/{{eventId}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["events", "{{eventId}}", "comments", "{{commentId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "let json = pm.response.json();",
+              "pm.expect(json.id).to.equal(parseInt(pm.collectionVariables.get('commentId')));"
+            ] }
+          }]
+        },
+        {
+          "name": "3. Update comment",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"text\": \"Updated by user.\"}" },
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "comments", "{{commentId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+              "let json = pm.response.json();",
+              "pm.expect(json.text).to.equal('Updated by user.');"
+            ] }
+          }]
+        },
+        {
+          "name": "4. Delete comment (user)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}", "host": ["{{baseUrl}}"], "path": ["users", "{{userId}}", "comments", "{{commentId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 204\", () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin delete comment (separate comment)",
+          "request": {
+            "method": "DELETE",
+            "url": { "raw": "{{baseUrl}}/admin/comments/{{adminCommentId}}", "host": ["{{baseUrl}}"], "path": ["admin", "comments", "{{adminCommentId}}"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test(\"Status 204\", () => pm.response.to.have.status(204));"] }
+          }]
+        }
+      ]
+    }
+  ]
+}
