@@ -1,2 +1,5 @@
 # java-explore-with-me
-Template repository for ExploreWithMe project.
+
+Этап 3. Дополнительная функциональность
+comments — комментарии к событиям
+https://github.com/sdfasdfasfasf/java-explore-with-me/pull/5
